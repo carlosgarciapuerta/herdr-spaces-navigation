@@ -2,6 +2,7 @@
   "name": "herdr-spaces-navigation",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.2.2",
   "scripts": {
     "test": "node --test"
   }

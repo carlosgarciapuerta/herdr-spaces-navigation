@@ -98,10 +98,10 @@ Upstream's mod lives in `mods/space-folders/`; here it is `mods/herdr-spaces-nav
 ## Tests
 
 ```sh
-npm test
+pnpm test
 ```
 
-This runs `node --test` (Node 20 or later, no packages to install) on `test/`. The tests check `mods/herdr-spaces-navigation/logic.js`: the folder rules, which folder a space goes in, the stops `alt-up` / `alt-down` go to, and what a tab row is called. The drawing in `main.js` needs the Herdr app, so `herdr-app check` and a look in the app cover it.
+This runs `node --test` (Node 20 or later; pnpm, as `packageManager` in `package.json` names it; no packages to install) on `test/`. The tests check `mods/herdr-spaces-navigation/logic.js`: the folder rules, which folder a space goes in, the stops `alt-up` / `alt-down` go to, and what a tab row is called. The drawing in `main.js` needs the Herdr app, so `herdr-app check` and a look in the app cover it.
 
 ## License
 
