@@ -1,0 +1,19 @@
+herdr-spaces-navigation
+Copyright (c) 2026 Carlos Garcia Puerta
+
+This project is a fork of herdr-space-folders
+(https://github.com/jankeesvw/herdr-space-folders),
+Copyright (c) 2026 Jankees van Woezik and contributors, MIT License.
+
+mods/herdr-spaces-navigation/main.js started as a copy of the spaces mod that
+ships with Herdr (https://herdr.dev), licensed under the Apache License 2.0
+(LICENSE-APACHE). That file was changed:
+- by herdr-space-folders: folders, folder rules, folder menu and dialog,
+  keys that follow the list;
+- by herdr-spaces-navigation: tab rows under each space, keys that step
+  through tabs, a space menu with colors, more folder colors.
+
+Everything else in this repository is under the MIT License (LICENSE).
+
+The icons the mod draws are Herdr's own (mods/workspace-chrome/), loaded from
+the Herdr app at run time. They are not part of this repository.
