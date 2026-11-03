@@ -1,10 +1,10 @@
 {
   "layout:main-navigation": {
-    "alt-down": "spaces-navigation.next",
-    "alt-up": "spaces-navigation.prev",
-    "ctrl-shift-pagedown": "spaces-navigation.next",
-    "ctrl-shift-pageup": "spaces-navigation.prev",
-    "ctrl-space shift-n": "spaces-navigation.next",
-    "ctrl-space shift-p": "spaces-navigation.prev"
+    "alt-down": "herdr-spaces-navigation.next",
+    "alt-up": "herdr-spaces-navigation.prev",
+    "ctrl-shift-pagedown": "herdr-spaces-navigation.next",
+    "ctrl-shift-pageup": "herdr-spaces-navigation.prev",
+    "ctrl-space shift-n": "herdr-spaces-navigation.next",
+    "ctrl-space shift-p": "herdr-spaces-navigation.prev"
   }
 }

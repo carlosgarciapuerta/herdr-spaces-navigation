@@ -3,7 +3,7 @@
 // its first terminal is in now, only where unusual: branch, ahead/behind. Agent state lives in the agents list, not here. Click to
 // switch, right-click for its menu, drag to reorder.
 //
-// Tabs (spaces-navigation): each space's tabs hang under it, with their agent
+// Tabs (herdr-spaces-navigation): each space's tabs hang under it, with their agent
 // status. Click one to show that space and tab, double-click to rename it,
 // right-click for its menu. A space's chevron folds its tabs away.
 //
@@ -27,7 +27,7 @@ import { spaces, machines, panes, run, openOverlay, closeOverlay, props, exec, h
 // The folders file and shared keys stay those of space-folders, so this mod and
 // space-folders show the same folders.
 const FILE = "~/.config/herdr-space-folders.json";
-const MOD = "spaces-navigation";
+const MOD = "herdr-spaces-navigation";
 const key = (machine) => machine ?? "";
 const all = () => shared("space-folders") ?? {};
 const folders = (machine) => all()[key(machine)] ?? { list: [], of: {} };
@@ -211,7 +211,7 @@ export default class Spaces extends View {
     // `git status` walks the whole tree, on another machine a process there:
     // only when its answer could have changed (see `due`).
     cx.timer.every(250, (cx) => this.checkNew(cx));
-    // "spaces-navigation.next" and ".prev" in keys.json: the next space down the
+    // "herdr-spaces-navigation.next" and ".prev" in keys.json: the next space down the
     // list as it shows, where Herdr's own space.next goes by its own order.
     this.seen = [];
     cx.spawn(async (cx) => {

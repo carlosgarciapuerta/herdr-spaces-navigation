@@ -54,7 +54,7 @@
               },
               "min": 90,
               "content": {
-                "mod": "spaces-navigation"
+                "mod": "herdr-spaces-navigation"
               }
             },
             {

@@ -29,7 +29,7 @@ Clone this repository and link the mod into Herdr's home:
 
 ```sh
 git clone https://github.com/carlosgarciapuerta/herdr-spaces-navigation.git ~/workspace/personal/herdr-spaces-navigation
-ln -s ~/workspace/personal/herdr-spaces-navigation/mods/spaces-navigation ~/.config/herdr-app/mods/spaces-navigation
+ln -s ~/workspace/personal/herdr-spaces-navigation/mods/herdr-spaces-navigation ~/.config/herdr-app/mods/herdr-spaces-navigation
 cp ~/workspace/personal/herdr-spaces-navigation/layouts/main-navigation.json ~/.config/herdr-app/layouts/
 herdr-app do layout.switch --name main-navigation
 ```
@@ -45,10 +45,10 @@ Herdr doesn't notice changes inside a symlinked mod folder, so after a `git pull
 In a layout of your own, point the spaces block at this mod:
 
 ```json
-{ "id": "spaces", "type": "block", "size": { "weight": 1 }, "min": 90, "content": { "mod": "spaces-navigation" } }
+{ "id": "spaces", "type": "block", "size": { "weight": 1 }, "min": 90, "content": { "mod": "herdr-spaces-navigation" } }
 ```
 
-and give `keys.json` the same keys in a section named after that layout, `layout:<name>`, with `spaces-navigation.next` and `spaces-navigation.prev`.
+and give `keys.json` the same keys in a section named after that layout, `layout:<name>`, with `herdr-spaces-navigation.next` and `herdr-spaces-navigation.prev`.
 
 ## Keeping up with upstream
 
@@ -57,7 +57,7 @@ git remote add upstream https://github.com/jankeesvw/herdr-space-folders.git   #
 git fetch upstream && git merge upstream/main
 ```
 
-Upstream's mod lives in `mods/space-folders/`; here it is `mods/spaces-navigation/`. Git follows the rename, so most merges apply by themselves.
+Upstream's mod lives in `mods/space-folders/`; here it is `mods/herdr-spaces-navigation/`. Git follows the rename, so most merges apply by themselves.
 
 ## License
 
