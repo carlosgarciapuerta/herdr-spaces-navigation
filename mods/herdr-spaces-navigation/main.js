@@ -137,6 +137,9 @@ const FALLBACK = 60000;
 // What a stored color name looks like on an avatar (the same in every mod
 // that draws space avatars): one strong color per hue, light and dark alike.
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
+// More folder colors, stored as their hex: strong enough for a white folder icon
+// in light and dark themes alike.
+const MORE = ["#e5534b", "#d4a72c", "#84a33a", "#14a3c4", "#4f63d8", "#c05bd6", "#a0714f", "#64748b"];
 
 // A space speaks up only when something in it needs you.
 export function glyph(status) {
@@ -523,7 +526,7 @@ export default class Spaces extends View {
         cx.notify();
       })
       .on_click(() => this.toggleFolder(machine, f.id))
-      .on_mouse_down("right", () => openOverlay({ mod: MOD, kind: "popup", width: 210, height: 160, props: { folderMenu: f.id, machine } }));
+      .on_mouse_down("right", () => openOverlay({ mod: MOD, kind: "popup", width: 236, height: 190, props: { folderMenu: f.id, machine } }));
     // Built like a space's avatar: a filled 18px tile in the folder's color, its mark in white.
     const tile = h_flex().size(18).flex_none().rounded(5).items_center().justify_center().bg(f.color ? (MARK[f.color] ?? f.color) : t.dim)
       .child(svg("mods/workspace-chrome/folder.svg").size(13).text_color("#ffffff"));
@@ -546,10 +549,14 @@ export default class Spaces extends View {
       .hover((s) => s.bg(t.hover)).on_click(() => { closeOverlay(overlay); action(); }).child(label);
     const current = folders(machine).list.find((x) => x.id === id)?.color ?? null;
     const swatch = (color) => div().id(`folder-color-${color ?? "grey"}`).size(20).flex_none().rounded(10).cursor_pointer()
-      .bg(color ? MARK[color] : t.dim).border_2().border_color(color === current ? t.foreground : t.popover)
+      .bg(color ? (MARK[color] ?? color) : t.dim).border_2().border_color(color === current ? t.foreground : t.popover)
       .hover((s) => s.border_color(t.muted)).on_click(() => { this.paint(machine, id, color); closeOverlay(overlay); });
+    // Grey, the space avatars' six, then the rest: rows of eight.
+    const colors = [null, ...Object.keys(MARK), ...MORE];
+    const rows = [];
+    for (let n = 0; n < colors.length; n += 8) rows.push(colors.slice(n, n + 8));
     return v_flex().id("folder-menu").size_full().p(5).gap(1).bg(t.popover).text_color(t.foreground).text_size(12.5)
-      .child(h_flex().px(8).pt(6).pb(8).gap(6).items_center().children([null, ...Object.keys(MARK)].map(swatch)))
+      .child(v_flex().px(8).pt(6).pb(8).gap(6).children(rows.map((r, n) => h_flex().id(`folder-colors-${n}`).gap(6).items_center().children(r.map(swatch)))))
       .child(item("folder-space", "New space here", () => newSpaceIn(machine, id)))
       .child(item("folder-edit", "Edit folder…", () => openOverlay({ mod: MOD, kind: "dialog", width: 460, props: { edit: id, machine } })))
       .child(item("folder-delete", "Delete folder", () => {
