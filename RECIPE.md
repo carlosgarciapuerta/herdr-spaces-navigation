@@ -12,6 +12,7 @@ Herdr's spaces list with folders and tabs: colored, foldable folders above the l
 - **A machine in a folder** (a folder on this computer whose rules take it in): the machine's header, indented to 26px like the folder's spaces, then its folders and spaces at 26px. It no longer has a group of its own below, and once every other machine is in a folder the "This computer" header goes too. The folder's count and folded status include the machine's spaces.
 - **While dragging**: a space over a folder gives the folder an `accent` border on `selected`; a dragged folder goes half transparent and a 2px `accent` line shows where it lands; a space dragged out of a folder shows a dashed drop zone under the list, "Drop here to take it out of its folder".
 - **A folder's menu** (right-click), 236 by 190: fifteen 20px color dots in rows of eight (grey, the space avatars' six, then `#e5534b #d4a72c #84a33a #14a3c4 #4f63d8 #c05bd6 #a0714f #64748b`; the current one ringed in `foreground`), "New space here", "Edit folder…", "Delete folder".
+- **A space's menu** (right-click), 236 wide: fourteen color dots in rows of eight (the space avatars' six, then the eight above; the current one ringed), "Rename", "New worktree" and "Open worktree" in a repo, "Remove worktree" in a worktree, a line, "Close". It replaces Herdr's `menu` for spaces, with the same items.
 - **Edit folder**, a 460px dialog: Name; "Start new spaces in" with "Choose…" on this computer; "Collect spaces from" with a hint; Cancel and Save.
 
 ## How it behaves
@@ -29,7 +30,7 @@ Herdr's spaces list with folders and tabs: colored, foldable folders above the l
 
 ## Built from
 
-- **Mod** `mods/herdr-spaces-navigation/`: herdr-space-folders' `mods/space-folders/`, itself a `mod.clone` of Herdr's `spaces` (0.1.10), so its git, worktree, machine and drag-to-reorder code is Herdr's. Folders: `grouped` (`foldered`, `folderHead`), the drop and reorder handlers, the menu (overlay props `folderMenu, machine`) and the edit dialog (overlay props `edit, machine, fresh`) as modes of the same mod. Tabs: `tabRows`, `programs`, `toggleTabs`, and the drag helpers `aim` / `land` the space and tab rows share. The folders file and shared keys keep space-folders' names, so both mods show the same folders.
+- **Mod** `mods/herdr-spaces-navigation/`: herdr-space-folders' `mods/space-folders/`, itself a `mod.clone` of Herdr's `spaces` (0.1.10), so its git, worktree, machine and drag-to-reorder code is Herdr's. Folders: `grouped` (`foldered`, `folderHead`), the drop and reorder handlers, the menus (overlay props `folderMenu, machine` and `spaceMenu, git`; colors in `swatches`) and the edit dialog (overlay props `edit, machine, fresh`) as modes of the same mod. Tabs: `tabRows`, `programs`, `toggleTabs`, and the drag helpers `aim` / `land` the space and tab rows share. The folders file and shared keys keep space-folders' names, so both mods show the same folders.
 - **Layout** `layouts/main-navigation.json`: Herdr's `main` 0.1.10 with the `spaces` block's mod set to `herdr-spaces-navigation`.
 - **Keys** `keys.json`: a `layout:main-navigation` section binding Herdr's next/previous space keys to `herdr-spaces-navigation.next` and `herdr-spaces-navigation.prev`. Drawing the list fills the spaces' order (shown or folded away) as it goes; the mod's `nextCommand()` loop steps through it and runs `space.select {id}`.
 - **herdr**: `spaces`, `panes`, `machines`, `run` (`space.new`, `space.move`, `space.select`, `tab.select`, `tab.rename`), `openOverlay`, `closeOverlay`, `props`, `shared` / `setShared` (`space-folders`, `space-folders.new`), `exec` (with `on`), `pickFolder`, `home`, `nextCommand`.
@@ -41,7 +42,7 @@ Herdr's spaces list with folders and tabs: colored, foldable folders above the l
 - Herdr doesn't reload a mod from a symlinked folder when a file changes; recreating the link (or a restart) does.
 - An overlay opened while its mod reloads can come up late or not at all.
 - Space ids are per machine: remote spaces show as `machine/id` here and are stored by their own id in that machine's file.
-- Herdr's right-click menu on a space can't be extended without cloning it, so there's no "Move to folder" there: drag instead.
+- Herdr's right-click menu on a space can't be extended without cloning it, so this mod draws its own (colors, then Herdr's items). There's still no "Move to folder": drag instead. A new item in Herdr's own space menu won't show here until it's added.
 - Herdr's own `space.next` and `space.prev` go by the order it keeps the spaces in, which folders don't change, so they jump around the list: the keys have to name the mod's commands instead. Those reach only a copy that shows, so with the sidebar hidden (`ctrl-shift-b`) they do nothing. The section is per layout: a layout of another name needs its own `layout:<name>` section.
 
 ## Done when

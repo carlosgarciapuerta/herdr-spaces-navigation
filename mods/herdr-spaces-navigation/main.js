@@ -160,9 +160,10 @@ const lastPart = (p) => {
 
 export default class Spaces extends View {
   init(_props, cx) {
-    // As an overlay of the sidebar: a folder's menu, or the dialog editing one.
-    const { folderMenu, edit, machine = null, fresh = false, overlay } = props() ?? {};
+    // As an overlay of the sidebar: a folder's or a space's menu, or the dialog editing a folder.
+    const { folderMenu, spaceMenu, git = null, edit, machine = null, fresh = false, overlay } = props() ?? {};
     if (folderMenu) { this.folderMenu = { id: folderMenu, machine, overlay }; return; }
+    if (spaceMenu) { this.spaceMenu = { id: spaceMenu, git, overlay }; return; }
     if (edit) {
       const f = folders(machine).list.find((x) => x.id === edit) ?? { name: NEW_FOLDER };
       this.editing = { id: edit, machine, fresh, overlay };
@@ -372,9 +373,12 @@ export default class Spaces extends View {
     });
   }
 
-  menu(w) {
+  // Herdr's space menu with a color picker on top. `git`: "main" (a repo's own
+  // checkout), "linked" (a worktree) or null, as the sidebar last saw it.
+  menu(w, g) {
     // A popup is as tall as its items; height is only the most.
-    openOverlay({ mod: "menu", kind: "popup", width: 200, height: 260, props: { tab: "space", target: { id: w.id } } });
+    const git = g ? (g.linked ? "linked" : "main") : null;
+    openOverlay({ mod: MOD, kind: "popup", width: 236, height: 300, props: { spaceMenu: w.id, git } });
   }
 
   // ---- folders ----
@@ -543,26 +547,54 @@ export default class Spaces extends View {
       .child(svg(`mods/workspace-chrome/chevron-${f.folded ? "right" : "down"}.svg`).size(11).flex_none().text_color(t.dim));
   }
 
-  folderMenuView(t) {
-    const { id, machine, overlay } = this.folderMenu;
-    const item = (key, label, action) => div().id(key).h(30).px(10).flex().items_center().rounded(6).cursor_pointer()
-      .hover((s) => s.bg(t.hover)).on_click(() => { closeOverlay(overlay); action(); }).child(label);
-    const current = folders(machine).list.find((x) => x.id === id)?.color ?? null;
-    const swatch = (color) => div().id(`folder-color-${color ?? "grey"}`).size(20).flex_none().rounded(10).cursor_pointer()
+  // Color dots in rows of eight; `current` ringed, `pick` runs on a click.
+  swatches(t, key, colors, current, pick) {
+    const swatch = (color) => div().id(`${key}-color-${color ?? "grey"}`).size(20).flex_none().rounded(10).cursor_pointer()
       .bg(color ? (MARK[color] ?? color) : t.dim).border_2().border_color(color === current ? t.foreground : t.popover)
-      .hover((s) => s.border_color(t.muted)).on_click(() => { this.paint(machine, id, color); closeOverlay(overlay); });
-    // Grey, the space avatars' six, then the rest: rows of eight.
-    const colors = [null, ...Object.keys(MARK), ...MORE];
+      .hover((s) => s.border_color(t.muted)).on_click(() => pick(color));
     const rows = [];
     for (let n = 0; n < colors.length; n += 8) rows.push(colors.slice(n, n + 8));
+    return v_flex().px(8).pt(6).pb(8).gap(6).children(rows.map((r, n) => h_flex().id(`${key}-colors-${n}`).gap(6).items_center().children(r.map(swatch))));
+  }
+
+  menuItem(t, overlay, key, label, action) {
+    return div().id(key).h(30).px(10).flex().items_center().rounded(6).cursor_pointer()
+      .hover((s) => s.bg(t.hover)).on_click(() => { closeOverlay(overlay); action(); }).child(label);
+  }
+
+  folderMenuView(t) {
+    const { id, machine, overlay } = this.folderMenu;
+    const item = (key, label, action) => this.menuItem(t, overlay, key, label, action);
+    const current = folders(machine).list.find((x) => x.id === id)?.color ?? null;
+    // Grey, the space avatars' six, then the rest.
+    const pick = (color) => { this.paint(machine, id, color); closeOverlay(overlay); };
     return v_flex().id("folder-menu").size_full().p(5).gap(1).bg(t.popover).text_color(t.foreground).text_size(12.5)
-      .child(v_flex().px(8).pt(6).pb(8).gap(6).children(rows.map((r, n) => h_flex().id(`folder-colors-${n}`).gap(6).items_center().children(r.map(swatch)))))
+      .child(this.swatches(t, "folder", [null, ...Object.keys(MARK), ...MORE], current, pick))
       .child(item("folder-space", "New space here", () => newSpaceIn(machine, id)))
       .child(item("folder-edit", "Edit folder…", () => openOverlay({ mod: MOD, kind: "dialog", width: 460, props: { edit: id, machine } })))
       .child(item("folder-delete", "Delete folder", () => {
         const f = folders(machine);
         saveFolders(machine, { list: f.list.filter((x) => x.id !== id), of: Object.fromEntries(Object.entries(f.of).filter(([, v]) => v !== id)) });
       }));
+  }
+
+  // A space's colors (shared "space.colors": a MARK name or a #rrggbb), then
+  // Herdr's own space menu items.
+  spaceMenuView(t) {
+    const { id, git, overlay } = this.spaceMenu;
+    const item = (key, label, action) => this.menuItem(t, overlay, key, label, action);
+    const worktree = (action, size) => () => openOverlay({ mod: "worktree", kind: "dialog", ...size, props: { space: id, action } });
+    const current = (shared("space.colors") ?? {})[id] ?? null;
+    const pick = (color) => { setShared("space.colors", { ...(shared("space.colors") ?? {}), [id]: color }); closeOverlay(overlay); };
+    return v_flex().id("space-menu").size_full().p(5).gap(1).bg(t.popover).text_color(t.foreground).text_size(12.5)
+      .child(this.swatches(t, "space", [...Object.keys(MARK), ...MORE], current, pick))
+      .child(item("space-rename", "Rename", () => run("space.rename", { id })))
+      .when(Boolean(git), (el) => el
+        .child(item("space-worktree-new", "New worktree", worktree("new", { width: 440, height: 260 })))
+        .child(item("space-worktree-open", "Open worktree", worktree("open", { width: 560, height: 480 }))))
+      .when(git === "linked", (el) => el.child(item("space-worktree-remove", "Remove worktree", worktree("remove", { width: 440, height: 260 }))))
+      .child(div().mx(7).my(4).h(1).bg(t.border))
+      .child(item("space-close", "Close", () => run("space.close", { id })));
   }
 
   editView(t) {
@@ -820,7 +852,7 @@ export default class Spaces extends View {
         else if (from === i) run("space.select", { id: w.id });
         cx.notify();
       })
-      .on_mouse_down("right", () => this.menu(w))
+      .on_mouse_down("right", () => this.menu(w, g))
       .child(
         h_flex()
           .gap(9)
@@ -855,6 +887,7 @@ export default class Spaces extends View {
   render() {
     const t = theme();
     if (this.folderMenu) return this.folderMenuView(t);
+    if (this.spaceMenu) return this.spaceMenuView(t);
     if (this.editing) return this.editView(t);
     const collapsed = narrow();
     const palette = ["ansi6", "ansi3", "ansi4", "ansi5", "ansi2", "ansi1"];

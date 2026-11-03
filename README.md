@@ -2,7 +2,7 @@
 
 The spaces list of the [Herdr](https://herdr.dev) desktop app with folders **and tabs**: each space's tabs hang under it, so one sidebar shows folders, spaces and tabs together.
 
-A fork of [jankeesvw/herdr-space-folders](https://github.com/jankeesvw/herdr-space-folders). Everything that mod does stays; this fork adds the tab rows.
+A fork of [jankeesvw/herdr-space-folders](https://github.com/jankeesvw/herdr-space-folders). Everything that mod does stays; this fork adds the tab rows and more colors.
 
 ## Tabs under each space
 
@@ -12,6 +12,11 @@ A fork of [jankeesvw/herdr-space-folders](https://github.com/jankeesvw/herdr-spa
 - **Right-click** a tab row for Herdr's own tab menu (rename, close, ...).
 - **A chevron on each space** folds its tabs away. This screen remembers it.
 - In the narrow rail (sidebar under 160px), no tab rows show.
+
+## Colors
+
+- **Right-click a space** to pick its color from 14, then Herdr's own space items (rename, worktrees, close).
+- **Right-click a folder** to pick its color from 15 (grey and the same 14).
 
 ## Folders (from space-folders)
 
