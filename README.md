@@ -1,8 +1,12 @@
 # Herdr Spaces Navigation
 
+![Herdr Spaces Navigation: folders, spaces and tabs in one sidebar](social.png)
+
 A spaces sidebar for the [Herdr](https://herdr.dev) desktop app. It shows folders, spaces and tabs in one list: each space's tabs hang under it, and the keys step through them in the order you see.
 
 It is a fork of [jankeesvw/herdr-space-folders](https://github.com/jankeesvw/herdr-space-folders). Everything that mod does stays. This fork adds tab rows, tab navigation and more colors.
+
+![The sidebar with folders, spaces and the tabs under each space](preview.png)
 
 ## What it adds to space-folders
 
@@ -34,6 +38,8 @@ It is a fork of [jankeesvw/herdr-space-folders](https://github.com/jankeesvw/her
 A space with folded tabs is one stop. Spaces in a folded folder are skipped.
 
 ## Colors
+
+![A space's right-click menu with its colors](colors.png)
 
 - **Right-click a space** to pick its color from 14. Below the colors are Herdr's own space items: Rename, New worktree, Open worktree, Remove worktree (in a worktree), Close.
 - **Right-click a folder** to pick its color from 15 (grey and the same 14). Below the colors: New space here, Edit folder…, Delete folder.
