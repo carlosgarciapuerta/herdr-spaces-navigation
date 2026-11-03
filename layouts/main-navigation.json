@@ -54,7 +54,7 @@
               },
               "min": 90,
               "content": {
-                "mod": "space-folders"
+                "mod": "spaces-navigation"
               }
             },
             {

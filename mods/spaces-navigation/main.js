@@ -3,6 +3,10 @@
 // its first terminal is in now, only where unusual: branch, ahead/behind. Agent state lives in the agents list, not here. Click to
 // switch, right-click for its menu, drag to reorder.
 //
+// Tabs (spaces-navigation): each space's tabs hang under it, with their agent
+// status. Click one to show that space and tab, double-click to rename it,
+// right-click for its menu. A space's chevron folds its tabs away.
+//
 // Folders (Herdr's own spaces mod, cloned): spaces dragged onto a folder's
 // header go in it, dropped on a space they join its folder, dropped below the
 // list they leave. A folder folds; right-click colors, edits or deletes it.
@@ -11,7 +15,7 @@
 // another machine too, with its header and spaces, when a rule matches the
 // machine's name or the folder one of its spaces works in.
 
-import { View, div, svg } from "gpui-kit";
+import { View, div, svg, image } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { spaces, machines, panes, run, openOverlay, closeOverlay, props, exec, hc, theme, shared, setShared, watchFolder, window, layout, pickFolder, home, nextCommand } from "herdr";
 
@@ -20,7 +24,10 @@ import { spaces, machines, panes, run, openOverlay, closeOverlay, props, exec, h
 // folderId }, at }, with space ids as that machine knows them. While this runs,
 // shared state holds them per machine ("" is this computer), so the sidebar, a
 // folder's menu and its edit dialog see a change at once.
+// The folders file and shared keys stay those of space-folders, so this mod and
+// space-folders show the same folders.
 const FILE = "~/.config/herdr-space-folders.json";
+const MOD = "spaces-navigation";
 const key = (machine) => machine ?? "";
 const all = () => shared("space-folders") ?? {};
 const folders = (machine) => all()[key(machine)] ?? { list: [], of: {} };
@@ -194,6 +201,8 @@ export default class Spaces extends View {
     this.over = null;
     this.machines = [];
     this.folded = new Set(JSON.parse(localStorage.getItem("machines.folded") ?? "[]"));
+    // Spaces whose tabs are folded away.
+    this.tabsFolded = new Set(JSON.parse(localStorage.getItem("tabs.folded") ?? "[]"));
     this.refreshMachines(cx);
     cx.timer.every(15000, cx => this.refreshMachines(cx));
     // Another screen may have changed them: read every machine's file again now and then.
@@ -202,7 +211,7 @@ export default class Spaces extends View {
     // `git status` walks the whole tree, on another machine a process there:
     // only when its answer could have changed (see `due`).
     cx.timer.every(250, (cx) => this.checkNew(cx));
-    // "space-folders.next" and ".prev" in keys.json: the next space down the
+    // "spaces-navigation.next" and ".prev" in keys.json: the next space down the
     // list as it shows, where Herdr's own space.next goes by its own order.
     this.seen = [];
     cx.spawn(async (cx) => {
@@ -376,7 +385,7 @@ export default class Spaces extends View {
   // A new folder is only made when its dialog is saved; cancelled, nothing's left.
   newFolder(machine) {
     const id = `f${Date.now().toString(36)}`;
-    openOverlay({ mod: "space-folders", kind: "dialog", width: 460, props: { edit: id, machine, fresh: true } });
+    openOverlay({ mod: MOD, kind: "dialog", width: 460, props: { edit: id, machine, fresh: true } });
   }
 
   reorder(machine, from, to) {
@@ -453,11 +462,12 @@ export default class Spaces extends View {
   // Every space goes in `seen` in this order, folded away (`hidden`) or not,
   // for the keys that step through the list.
   foldered(rows, machine, t, collapsed, { guests = [], nested = false, hidden = false, seen = [] } = {}) {
+    const f = folders(machine), { list } = f, ps = panes();
+    const programs = this.programs(ps);
     const draw = (r, away) => {
       seen.push({ id: r.w.id, shown: !away });
-      return away ? [] : [collapsed ? this.compact(r, t) : this.row(r, t)];
+      return away ? [] : collapsed ? [this.compact(r, t)] : [this.row(r, t), ...this.tabRows(r, programs, t)];
     };
-    const f = folders(machine), { list } = f, ps = panes();
     let parent = null;
     const placed = rows.map((r) => {
       if (!r.tree) parent = folderOf(r.w, f, ps);
@@ -505,7 +515,7 @@ export default class Spaces extends View {
         cx.notify();
       })
       .on_click(() => this.toggleFolder(machine, f.id))
-      .on_mouse_down("right", () => openOverlay({ mod: "space-folders", kind: "popup", width: 210, height: 160, props: { folderMenu: f.id, machine } }));
+      .on_mouse_down("right", () => openOverlay({ mod: MOD, kind: "popup", width: 210, height: 160, props: { folderMenu: f.id, machine } }));
     // Built like a space's avatar: a filled 18px tile in the folder's color, its mark in white.
     const tile = h_flex().size(18).flex_none().rounded(5).items_center().justify_center().bg(f.color ? (MARK[f.color] ?? f.color) : t.dim)
       .child(svg("mods/workspace-chrome/folder.svg").size(13).text_color("#ffffff"));
@@ -533,7 +543,7 @@ export default class Spaces extends View {
     return v_flex().id("folder-menu").size_full().p(5).gap(1).bg(t.popover).text_color(t.foreground).text_size(12.5)
       .child(h_flex().px(8).pt(6).pb(8).gap(6).items_center().children([null, ...Object.keys(MARK)].map(swatch)))
       .child(item("folder-space", "New space here", () => newSpaceIn(machine, id)))
-      .child(item("folder-edit", "Edit folder…", () => openOverlay({ mod: "space-folders", kind: "dialog", width: 460, props: { edit: id, machine } })))
+      .child(item("folder-edit", "Edit folder…", () => openOverlay({ mod: MOD, kind: "dialog", width: 460, props: { edit: id, machine } })))
       .child(item("folder-delete", "Delete folder", () => {
         const f = folders(machine);
         saveFolders(machine, { list: f.list.filter((x) => x.id !== id), of: Object.fromEntries(Object.entries(f.of).filter(([, v]) => v !== id)) });
@@ -673,11 +683,96 @@ export default class Spaces extends View {
       .when(g.behind > 0, (el) => el.child(div().flex_none().text_color(t.ansi1).child(`\u2193${g.behind}`)));
   }
 
+  // A space dragged here (`from`, an index in spaces()) and released on the
+  // space at `i`, or on one of its tabs: it goes to that place, and into that
+  // space's folder.
+  land(from, i, folder) {
+    this.drop(from, folder);
+    run("space.move", { id: spaces()[from].id, index: i + 1 });
+  }
+
+  // While a space is dragged over the space at `i` (or one of its tabs): the
+  // line shows there, if both are on the same machine.
+  aim(w, i, cx) {
+    const source = spaces()[this.pressed];
+    const over = source && (source.machine ?? null) === (w.machine ?? null) ? i : null;
+    if (this.pressed !== null && (this.over !== over || this.overFolder !== null)) {
+      this.over = over;
+      this.overFolder = null;
+      cx.notify();
+    }
+  }
+
+  toggleTabs(id) {
+    const live = new Set(spaces().map((s) => s.id));
+    this.tabsFolded.has(id) ? this.tabsFolded.delete(id) : this.tabsFolded.add(id);
+    localStorage.setItem("tabs.folded", JSON.stringify([...this.tabsFolded].filter((x) => live.has(x))));
+  }
+
+  // tab id -> the program it shows: an agent first, else its first pane's.
+  programs(ps) {
+    const out = {};
+    for (const p of ps) {
+      if (!p.tab || !p.program) continue;
+      if (!out[p.tab] || (p.program.agent && !out[p.tab].agent)) out[p.tab] = p.program;
+    }
+    return out;
+  }
+
+  // A space's tabs, under its name: the program icon, the tab's name (an unnamed
+  // one goes by its program, as in the tab bar) and the agent status in it.
+  tabRows({ w, i, folder, nested }, programs, t) {
+    if (this.tabsFolded.has(w.id)) return [];
+    const pad = (folder || nested ? 26 : 8) + 27;
+    return (w.tabs ?? []).map((c) => {
+      const program = programs[c.id];
+      const name = c.named ? c.name : program?.name ?? "Terminal";
+      const shown = w.active && c.active;
+      return h_flex()
+        .id(`tab-${c.id}`)
+        .h(24)
+        .flex_none()
+        .pl(pad)
+        .pr(8)
+        .gap(7)
+        .items_center()
+        .rounded(7)
+        .text_size(12)
+        .cursor_pointer()
+        .text_color(shown ? t.foreground : t.muted)
+        .when(shown, (el) => el.bg(t.hover))
+        .when(!shown, (el) => el.hover((s) => s.bg(t.hover).text_color(t.foreground)))
+        .on_mouse_down("left", (e) => { if (e.click_count === 2) run("tab.rename", { id: c.id }); })
+        .on_mouse_move((_e, cx) => this.aim(w, i, cx))
+        .on_mouse_up("left", (_e, cx) => {
+          const from = this.pressed, over = this.over;
+          if (from === null) return;
+          this.pressed = null;
+          this.over = null;
+          if (over === i && from !== i) this.land(from, i, folder);
+          cx.notify();
+        })
+        // tab.select shows the tab's space too.
+        .on_click(() => run("tab.select", { id: c.id }))
+        .on_mouse_down("right", (_e, cx) => {
+          cx.stop_propagation();
+          openOverlay({ mod: "menu", kind: "popup", width: 200, props: { tab: "tab", target: { id: c.id, space: w.id } } });
+        })
+        .child(program?.icon
+          ? (program.tint ? svg(program.icon).size(13).flex_none().text_color(t.muted) : image(program.icon).size(13).flex_none())
+          : svg("mods/workspace-chrome/terminal.svg").size(13).flex_none().text_color(t.dim))
+        .child(div().flex_1().min_w(0).truncate().child(c.zoomed ? `${name} Z` : name))
+        .when(c.status === "working", (el) => el.child(svg("mods/workspace-chrome/spinner.svg").size(11).flex_none().text_color(t.working).spin(900)))
+        .when(c.status === "blocked" || c.status === "done", (el) => el.child(div().size(6).flex_none().rounded(3).bg(t[c.status])));
+    });
+  }
+
   row({ w, i, g, tree, folder, nested }, t) {
     const on = w.active;
     const colors = shared("space.colors") ?? {};
     const color = colors[w.id] ?? "ansi6";
     const fill = color.startsWith("#") ? color : (MARK[color] ?? t[color]);
+    const tabsFolded = this.tabsFolded.has(w.id);
     return v_flex()
       .relative()
       .id(`space-${w.id}`)
@@ -699,22 +794,14 @@ export default class Spaces extends View {
         this.pressed = i;
         this.over = i;
       })
-      .on_mouse_move((_e, cx) => {
-        const source = spaces()[this.pressed];
-        const over = source && (source.machine ?? null) === (w.machine ?? null) ? i : null;
-        if (this.pressed !== null && (this.over !== over || this.overFolder !== null)) {
-          this.over = over;
-          this.overFolder = null;
-          cx.notify();
-        }
-      })
+      .on_mouse_move((_e, cx) => this.aim(w, i, cx))
       .on_mouse_up("left", (_e, cx) => {
         const from = this.pressed;
         const over = this.over;
         this.pressed = null;
         this.over = null;
         // Dropped on a space: it goes to that place, and into that space's folder.
-        if (from !== null && over === i && from !== i) { this.drop(from, folder); run("space.move", { id: spaces()[from].id, index: i + 1 }); }
+        if (from !== null && over === i && from !== i) this.land(from, i, folder);
         else if (from === i) run("space.select", { id: w.id });
         cx.notify();
       })
@@ -726,7 +813,13 @@ export default class Spaces extends View {
           .when(Boolean(tree), el => el.pl(22).child(svg("mods/workspace-chrome/branch.svg").size(13).text_color(t.dim)))
           .when(!tree, el => el.child(h_flex().size(18).flex_none().rounded(5).bg(fill).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...w.name][0]?.toUpperCase() ?? "?")))
           .child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
-          .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1()),
+          .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1())
+          // Folds this space's tabs; pressing it starts no drag.
+          .when((w.tabs ?? []).length > 0, (el) => el.child(div().id(`space-tabs-${w.id}`).flex_none().p(3).rounded(4).text_color(t.dim)
+            .hover((s) => s.bg(t.hover).text_color(t.foreground))
+            .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+            .on_click((_e, cx) => { cx.stop_propagation(); this.toggleTabs(w.id); cx.notify(); })
+            .child(svg(`mods/workspace-chrome/chevron-${tabsFolded ? "right" : "down"}.svg`).size(11)))),
       );
   }
 

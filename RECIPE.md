@@ -1,8 +1,6 @@
-# Herdr Space Folders
+# Herdr Spaces Navigation
 
-Herdr's spaces list with folders: colored, foldable folders above the loose spaces, filled by dragging or by rules on the folder a space works in, kept in a file in the home of the machine the spaces run on.
-
-![Herdr Space Folders](preview.png)
+Herdr's spaces list with folders and tabs: colored, foldable folders above the loose spaces, filled by dragging or by rules on the folder a space works in, kept in a file in the home of the machine the spaces run on; each space's tabs hang under it. A fork of herdr-space-folders.
 
 ## What you see
 
@@ -10,6 +8,7 @@ Herdr's spaces list with folders: colored, foldable folders above the loose spac
 - **Per machine** (a header per machine once another one is known, as in Herdr's list; each header gets a folder-plus next to its +): the machine's folders in their order, each followed by its spaces when unfolded, then the spaces in no folder.
 - **A folder's row**, 30px like a space's: an 18px tile with 5px corners in the folder's color (one of the space avatars' six, `#22a99a #e3814f #5b8def #8b7cf6 #3fae6a #d9649a`, or `dim` grey) holding a white 13px folder icon, the name in `foreground` medium weight, a status glyph when folded and an agent in it is blocked or done, a `dim` "+", the count, and a chevron (down open, right folded).
 - **Spaces in a folder** are Herdr's space rows indented to 26px; worktrees stay under their checkout.
+- **A space's tabs**, under its row: 24px rows, indented 27px more than the space (under its name), `muted` 12px (`foreground` on `hover` for the tab in front), each with its program's 13px icon (`terminal` from workspace-chrome when none), its name (an unnamed tab by its program, else "Terminal"; " Z" when zoomed), then a `working` spinner or a 6px `done` / `blocked` dot. A space with tabs gets a chevron at the end of its row (down open, right folded).
 - **A machine in a folder** (a folder on this computer whose rules take it in): the machine's header, indented to 26px like the folder's spaces, then its folders and spaces at 26px. It no longer has a group of its own below, and once every other machine is in a folder the "This computer" header goes too. The folder's count and folded status include the machine's spaces.
 - **While dragging**: a space over a folder gives the folder an `accent` border on `selected`; a dragged folder goes half transparent and a 2px `accent` line shows where it lands; a space dragged out of a folder shows a dashed drop zone under the list, "Drop here to take it out of its folder".
 - **A folder's menu** (right-click), 210 by 160: seven 20px color dots (the current one ringed in `foreground`), "New space here", "Edit folder…", "Delete folder".
@@ -18,6 +17,7 @@ Herdr's spaces list with folders: colored, foldable folders above the loose spac
 ## How it behaves
 
 - Click a folder to fold or unfold it. Press on a space and release on a folder to file it there; on another space to move it to that place (`space.move`) and into that space's folder; anywhere else in the list to take it out of its folder. Press on a folder and release on another to reorder: down puts it after, up before. Only within a machine.
+- Click a tab row to show it (`tab.select {id}`, which shows its space too); double-click to rename it (`tab.rename`); right-click for Herdr's tab menu (`menu` with `{tab: "tab", target: {id, space}}`). A space released on a tab row lands on that tab's space. Click a space's chevron to fold or unfold its tabs; kept per screen in the mod's `localStorage` (`tabs.folded`). The narrow rail shows no tab rows.
 - `alt-down` / `alt-up` (and `ctrl-shift-pagedown` / `pageup`, `ctrl-space shift-n` / `shift-p`) show the space below or above the one in front, in the order the list draws them: through each folder and the machines in it, then the loose spaces, then the next machine. Spaces in a folded folder or machine are skipped; past the last space it goes round to the first. When the space in front is folded away, it steps from where that space would be.
 - A space's folder: the one it was dragged into; "" (dragged out) keeps it out; otherwise the folder whose rules match deepest into the folder its first terminal works in (`~/code/client` beats `~/code`; on a tie the first folder wins). A worktree goes with its checkout's space.
 - A machine goes in the first folder on this computer whose rules match its name or the folder one of its spaces works in; a rule like `vm-*` matches a name the way it matches a folder name.
@@ -29,10 +29,10 @@ Herdr's spaces list with folders: colored, foldable folders above the loose spac
 
 ## Built from
 
-- **Mod** `mods/space-folders/`: `mod.clone` of Herdr's `spaces` (0.1.10), so its git, worktree, machine and drag-to-reorder code is Herdr's. Added: folders in `grouped` (`foldered`, `folderHead`), the drop and reorder handlers, the menu (overlay props `folderMenu, machine`) and the edit dialog (overlay props `edit, machine, fresh`) as modes of the same mod.
-- **Layout** `layouts/main-folders.json`: Herdr's `main` 0.1.10 with the `spaces` block's mod set to `space-folders`.
-- **Keys** `keys.json`: a `layout:main-folders` section binding Herdr's next/previous space keys to `space-folders.next` and `space-folders.prev`. Drawing the list fills the spaces' order (shown or folded away) as it goes; the mod's `nextCommand()` loop steps through it and runs `space.select {id}`.
-- **herdr**: `spaces`, `panes`, `machines`, `run` (`space.new`, `space.move`, `space.select`), `openOverlay`, `closeOverlay`, `props`, `shared` / `setShared` (`space-folders`, `space-folders.new`), `exec` (with `on`), `pickFolder`, `home`, `nextCommand`.
+- **Mod** `mods/spaces-navigation/`: herdr-space-folders' `mods/space-folders/`, itself a `mod.clone` of Herdr's `spaces` (0.1.10), so its git, worktree, machine and drag-to-reorder code is Herdr's. Folders: `grouped` (`foldered`, `folderHead`), the drop and reorder handlers, the menu (overlay props `folderMenu, machine`) and the edit dialog (overlay props `edit, machine, fresh`) as modes of the same mod. Tabs: `tabRows`, `programs`, `toggleTabs`, and the drag helpers `aim` / `land` the space and tab rows share. The folders file and shared keys keep space-folders' names, so both mods show the same folders.
+- **Layout** `layouts/main-navigation.json`: Herdr's `main` 0.1.10 with the `spaces` block's mod set to `spaces-navigation`.
+- **Keys** `keys.json`: a `layout:main-navigation` section binding Herdr's next/previous space keys to `spaces-navigation.next` and `spaces-navigation.prev`. Drawing the list fills the spaces' order (shown or folded away) as it goes; the mod's `nextCommand()` loop steps through it and runs `space.select {id}`.
+- **herdr**: `spaces`, `panes`, `machines`, `run` (`space.new`, `space.move`, `space.select`, `tab.select`, `tab.rename`), `openOverlay`, `closeOverlay`, `props`, `shared` / `setShared` (`space-folders`, `space-folders.new`), `exec` (with `on`), `pickFolder`, `home`, `nextCommand`.
 - **Icons**: Herdr's own, from `mods/workspace-chrome/` (folder, folder-plus, chevrons, plus).
 
 ## Watch out
@@ -46,10 +46,11 @@ Herdr's spaces list with folders: colored, foldable folders above the loose spac
 
 ## Done when
 
-- `herdr-app check ~/.config/herdr-app/mods/space-folders` passes.
+- `herdr-app check ~/.config/herdr-app/mods/spaces-navigation` passes.
+- Every space shows its tabs under it; clicking one shows that space and tab; the chevron folds them.
 - The folder-plus button opens Edit folder for a new folder, which is made only on Save; Cancel leaves nothing behind.
 - Dragging a space onto a folder files it; dragging it out puts it back; dragging a folder reorders the folders.
 - A folder with a start folder opens its new spaces there, in the folder.
 - A rule such as `herdr-*` collects the spaces working in matching folders.
-- `herdr-app do space-folders.next` from the last space of a folder shows the first space of the next folder, and from the last space in the list the first one.
+- `herdr-app do spaces-navigation.next` from the last space of a folder shows the first space of the next folder, and from the last space in the list the first one.
 - `~/.config/herdr-space-folders.json` changes with every edit, and another Herdr on the same machine shows the same folders.
