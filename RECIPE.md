@@ -42,7 +42,8 @@ Herdr's spaces list with folders and tabs: colored, foldable folders above the l
 
 ## Built from
 
-- **Mod** `mods/herdr-spaces-navigation/`: herdr-space-folders' `mods/space-folders/`, itself a `mod.clone` of Herdr's `spaces` (0.1.10), so its git, worktree, machine and drag-to-reorder code is Herdr's. Folders: `grouped` (`foldered`, `folderHead`), the drop and reorder handlers, the folder menu (overlay props `folderMenu, machine`) and the edit dialog (overlay props `edit, machine, fresh`) as modes of the same mod. Tabs: `tabRows`, `programs`, `toggleTabs`, and the drag helpers `aim` / `land` that space and tab rows share. Keys: `foldered` puts every stop in `seen` as it draws; `step` walks it. Colors: `MARK` and `MORE`, drawn by `swatches` in the folder menu and the space menu (`spaceMenuView`, overlay props `spaceMenu, git`), with `menuItem` for their items. The folders file and shared keys keep space-folders' names, so both mods show the same folders.
+- **Mod** `mods/herdr-spaces-navigation/`: herdr-space-folders' `mods/space-folders/`, itself a `mod.clone` of Herdr's `spaces` (0.1.10), so its git, worktree, machine and drag-to-reorder code is Herdr's. `main.js` draws; `logic.js` holds what needs no app (`rule`, `folderOf`, `place`, `localId`, `lastPart`, `stopsOf`, `nextStop`, `programsByTab`, `tabName`). Folders: `grouped` (`foldered`, `folderHead`), the drop and reorder handlers, the folder menu (overlay props `folderMenu, machine`) and the edit dialog (overlay props `edit, machine, fresh`) as modes of the same mod. Tabs: `tabRows`, `toggleTabs`, and the drag helpers `aim` / `land` that space and tab rows share. Keys: `foldered` puts every space's `stopsOf` in `seen` as it draws; `step` asks `nextStop` and selects it. Colors: `MARK` and `MORE`, drawn by `swatches` in the folder menu and the space menu (`spaceMenuView`, overlay props `spaceMenu, git`), with `menuItem` for their items. The folders file and shared keys keep space-folders' names, so both mods show the same folders.
+- **Tests** `test/logic.test.js`, run by `npm test` (`node --test`; `package.json` makes the `.js` files ES modules): `logic.js` only.
 - **Layout** `layouts/main-navigation.json`: Herdr's `main` 0.1.10 with the `spaces` block's mod set to `herdr-spaces-navigation`.
 - **Keys** `keys.json`: a `layout:main-navigation` section binding Herdr's next/previous space keys to `herdr-spaces-navigation.next` and `herdr-spaces-navigation.prev`; the mod's `nextCommand()` loop takes them.
 - **herdr**: `spaces`, `panes`, `machines`, `run` (`space.new`, `space.move`, `space.select`, `space.rename`, `space.close`, `tab.select`, `tab.rename`), `openOverlay` (this mod's menus and dialog, Herdr's `menu` for tabs, Herdr's `worktree` dialog), `closeOverlay`, `props`, `shared` / `setShared` (`space-folders`, `space-folders.new`, `space.colors`), `exec` (with `on`), `hc` (`machine ls`), `watchFolder`, `layout`, `window`, `theme`, `pickFolder`, `home`, `nextCommand`.
@@ -59,7 +60,7 @@ Herdr's spaces list with folders and tabs: colored, foldable folders above the l
 
 ## Done when
 
-- `herdr-app check ~/.config/herdr-app/mods/herdr-spaces-navigation` passes.
+- `herdr-app check ~/.config/herdr-app/mods/herdr-spaces-navigation` passes, and so does `npm test`.
 - Every space shows its tabs under it; clicking one shows that space and tab; the chevron folds them.
 - Right-clicking a space shows 14 colors; picking one changes the space's tile. Right-clicking a folder shows 15; picking one changes the folder's tile.
 - The folder-plus button opens Edit folder for a new folder, which is made only on Save; Cancel leaves nothing behind.

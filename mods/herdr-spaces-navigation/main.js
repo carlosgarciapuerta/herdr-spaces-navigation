@@ -23,6 +23,7 @@
 import { View, div, svg, image } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { spaces, machines, panes, run, openOverlay, closeOverlay, props, exec, hc, theme, shared, setShared, watchFolder, window, layout, pickFolder, home, nextCommand } from "herdr";
+import { localId, place, collects, folderOf, lastPart, stopsOf, nextStop, programsByTab, tabName } from "./logic.js";
 
 // A machine's folders live in a file in its home, so every screen showing its
 // spaces shows the same folders: { list: [{ id, name, folded }], of: { spaceId:
@@ -36,7 +37,6 @@ const MOD = "herdr-spaces-navigation";
 const key = (machine) => machine ?? "";
 const all = () => shared("space-folders") ?? {};
 const folders = (machine) => all()[key(machine)] ?? { list: [], of: {} };
-const localId = (s) => (s.machine ? s.id.slice(s.machine.length + 1) : s.id);
 const URGENT = ["blocked", "done", "working"];
 
 async function readFolders(machine) {
@@ -62,42 +62,6 @@ async function newSpaceIn(machine, id) {
   const path = folders(machine).list.find((f) => f.id === id)?.path;
   const folder = path ? await expand(machine, path).catch(() => null) : null;
   run("space.new", { ...(machine ? { machine } : {}), ...(folder ? { folder } : {}) });
-}
-
-// A rule of "Collect spaces from" takes a folder and everything in it. "~" is
-// any home, "*" any one folder name, and a rule starting with neither "/" nor
-// "~" is a folder name at any depth ("wbso-ai").
-export function rule(pattern) {
-  const p = pattern.trim().replace(/\/+$/, "");
-  if (!p) return null;
-  const body = p.replace(/^~/, "\u0000").split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")
-    .replace("\u0000", "(?:/home/[^/]+|/Users/[^/]+|/root)");
-  return new RegExp(`${/^[/~]/.test(p) ? "^" : "(?:^|/)"}${body}(?:/|$)`);
-}
-
-const collects = (f, path) => Boolean(path) && (f.match ?? "").split(",").some((p) => rule(p)?.test(path));
-
-// How deep into the path a folder's rules reach: 0 when none match. A rule
-// that takes ~/code/client wins over one that takes ~/code; a bare "*" reaches
-// least (it matches the first slash) but still counts.
-const reach = (f, path) => !path ? 0 : Math.max(0, ...(f.match ?? "").split(",").map((p) => {
-  const m = rule(p)?.exec(path);
-  return m ? 1 + m.index + m[0].replace(/\/$/, "").length : 0;
-}));
-
-// The folder whose rules reach deepest; the first one on a tie.
-function deepest(list, score) {
-  let best = null, most = 0;
-  for (const f of list) { const n = score(f); if (n > most) { best = f; most = n; } }
-  return best?.id ?? null;
-}
-
-// Where a space goes: where it was dragged (or "" for out of every folder), else
-// the folder whose rules reach deepest into the folder it works in.
-function folderOf(s, { list, of }, ps) {
-  const id = of[localId(s)];
-  if (id !== undefined) return list.some((f) => f.id === id) ? id : null;
-  return deepest(list, (f) => reach(f, place(s, ps)));
 }
 
 // The folder on this computer that takes in another machine: the first whose
@@ -126,12 +90,6 @@ function find(node, id) {
 // The sidebar's rail goes by its width, not a flag: dragging its edge narrows it too.
 const narrow = () => (find(layout(), "sidebar")?.size?.px ?? Infinity) < 160;
 
-// Where a space is now: its first terminal's live folder, else where it was made.
-// `ps`: panes(), read once by the caller (each read copies every pane).
-function place(s, ps) {
-  const tabs = new Set((s.tabs ?? []).map((c) => c.id));
-  return ps.find((p) => tabs.has(p.tab) && p.cwd)?.cwd || s.folder;
-}
 const rowHeight = ({ tree }) => (tree ? 28 : 30);
 const where = (s, ps) => JSON.stringify([s.machine ?? null, place(s, ps)]);
 const base = (path) => path.replace(/\/+$/, "").split("/").pop();
@@ -142,8 +100,8 @@ const FALLBACK = 60000;
 // What a stored color name looks like on an avatar (the same in every mod
 // that draws space avatars): one strong color per hue, light and dark alike.
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
-// More folder colors, stored as their hex: strong enough for a white folder icon
-// in light and dark themes alike.
+// More colors for spaces and folders, stored as their hex: strong enough for a
+// white icon or letter in light and dark themes alike.
 const MORE = ["#e5534b", "#d4a72c", "#84a33a", "#14a3c4", "#4f63d8", "#c05bd6", "#a0714f", "#64748b"];
 
 // A space speaks up only when something in it needs you.
@@ -156,12 +114,6 @@ export function tone(t, status) {
 }
 
 const NEW_FOLDER = "New folder";
-
-// A path's last folder name: "~/Projects/herdr/" gives "herdr"; "~" or "/" give "".
-const lastPart = (p) => {
-  const part = p.trim().replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? "";
-  return part === "~" ? "" : part;
-};
 
 export default class Spaces extends View {
   init(_props, cx) {
@@ -232,23 +184,10 @@ export default class Spaces extends View {
     });
   }
 
-  // One stop down (1) or up (-1) from the one in front: each tab the list shows
-  // under its space, else the space itself (tabs folded, narrow rail). Past
-  // the spaces in folded folders and machines, round from the end to the top.
+  // One stop down (1) or up (-1) from the tab in front (see nextStop).
   step(dir) {
-    const seen = this.seen, len = seen.length;
-    if (!len) return;
-    const space = spaces().find((w) => w.active);
-    const tab = space?.tabs?.find((c) => c.active)?.id;
-    let at = seen.findIndex((s) => s.id === space?.id && (s.tab === null || s.tab === tab));
-    if (at < 0) at = seen.findIndex((s) => s.id === space?.id);
-    const from = at >= 0 ? at : dir > 0 ? -1 : len;
-    for (let n = 1; n <= len; n++) {
-      const s = seen[(((from + dir * n) % len) + len) % len];
-      if (!s.shown) continue;
-      s.tab ? run("tab.select", { id: s.tab }) : run("space.select", { id: s.id });
-      return;
-    }
+    const s = nextStop(this.seen, spaces().find((w) => w.active), dir);
+    if (s) s.tab ? run("tab.select", { id: s.tab }) : run("space.select", { id: s.id });
   }
 
   checkNew(cx) {
@@ -481,11 +420,9 @@ export default class Spaces extends View {
   // one stop per tab while its tab rows show, for the keys that step through the list.
   foldered(rows, machine, t, collapsed, { guests = [], nested = false, hidden = false, seen = [] } = {}) {
     const f = folders(machine), { list } = f, ps = panes();
-    const programs = this.programs(ps);
+    const programs = programsByTab(ps);
     const draw = (r, away) => {
-      const tabs = !collapsed && !this.tabsFolded.has(r.w.id) ? r.w.tabs ?? [] : [];
-      if (tabs.length) for (const c of tabs) seen.push({ id: r.w.id, tab: c.id, shown: !away });
-      else seen.push({ id: r.w.id, tab: null, shown: !away });
+      seen.push(...stopsOf(r.w, !collapsed && !this.tabsFolded.has(r.w.id), !away));
       return away ? [] : collapsed ? [this.compact(r, t)] : [this.row(r, t), ...this.tabRows(r, programs, t)];
     };
     let parent = null;
@@ -761,16 +698,6 @@ export default class Spaces extends View {
     localStorage.setItem("tabs.folded", JSON.stringify([...this.tabsFolded].filter((x) => live.has(x))));
   }
 
-  // tab id -> the program it shows: an agent first, else its first pane's.
-  programs(ps) {
-    const out = {};
-    for (const p of ps) {
-      if (!p.tab || !p.program) continue;
-      if (!out[p.tab] || (p.program.agent && !out[p.tab].agent)) out[p.tab] = p.program;
-    }
-    return out;
-  }
-
   // A space's tabs, under its name: the program icon, the tab's name (an unnamed
   // one goes by its program, as in the tab bar) and the agent status in it.
   tabRows({ w, i, folder, nested }, programs, t) {
@@ -778,7 +705,7 @@ export default class Spaces extends View {
     const pad = (folder || nested ? 26 : 8) + 27;
     return (w.tabs ?? []).map((c) => {
       const program = programs[c.id];
-      const name = c.named ? c.name : program?.name ?? "Terminal";
+      const name = tabName(c, program);
       const shown = w.active && c.active;
       return h_flex()
         .id(`tab-${c.id}`)

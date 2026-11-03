@@ -1,0 +1,8 @@
+{
+  "name": "herdr-spaces-navigation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

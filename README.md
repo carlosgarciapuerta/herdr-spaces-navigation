@@ -93,7 +93,15 @@ git remote add upstream https://github.com/jankeesvw/herdr-space-folders.git   #
 git fetch upstream && git merge upstream/main
 ```
 
-Upstream's mod lives in `mods/space-folders/`; here it is `mods/herdr-spaces-navigation/`. Git follows the rename, so most merges apply by themselves.
+Upstream's mod lives in `mods/space-folders/`; here it is `mods/herdr-spaces-navigation/`. Git follows the rename, so most merges apply by themselves. One exception: the folder rules (`rule`, `folderOf`, `lastPart`) moved from `main.js` to `logic.js` here, so an upstream change to them must be copied into `logic.js` by hand.
+
+## Tests
+
+```sh
+npm test
+```
+
+This runs `node --test` (Node 20 or later, no packages to install) on `test/`. The tests check `mods/herdr-spaces-navigation/logic.js`: the folder rules, which folder a space goes in, the stops `alt-up` / `alt-down` go to, and what a tab row is called. The drawing in `main.js` needs the Herdr app, so `herdr-app check` and a look in the app cover it.
 
 ## License
 
