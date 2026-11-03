@@ -223,16 +223,22 @@ export default class Spaces extends View {
     });
   }
 
-  // One space down (1) or up (-1) from the one in front, past the spaces in
-  // folded folders and machines, round from the end to the top.
+  // One stop down (1) or up (-1) from the one in front: each tab the list shows
+  // under its space, else the space itself (tabs folded, narrow rail). Past
+  // the spaces in folded folders and machines, round from the end to the top.
   step(dir) {
     const seen = this.seen, len = seen.length;
     if (!len) return;
-    const at = seen.findIndex((s) => s.id === spaces().find((w) => w.active)?.id);
+    const space = spaces().find((w) => w.active);
+    const tab = space?.tabs?.find((c) => c.active)?.id;
+    let at = seen.findIndex((s) => s.id === space?.id && (s.tab === null || s.tab === tab));
+    if (at < 0) at = seen.findIndex((s) => s.id === space?.id);
     const from = at >= 0 ? at : dir > 0 ? -1 : len;
     for (let n = 1; n <= len; n++) {
       const s = seen[(((from + dir * n) % len) + len) % len];
-      if (s.shown) { run("space.select", { id: s.id }); return; }
+      if (!s.shown) continue;
+      s.tab ? run("tab.select", { id: s.tab }) : run("space.select", { id: s.id });
+      return;
     }
   }
 
@@ -460,12 +466,14 @@ export default class Spaces extends View {
   // A machine's folders, each with its spaces and the machines it takes in,
   // then the spaces in none. A worktree goes where its checkout's space goes.
   // Every space goes in `seen` in this order, folded away (`hidden`) or not,
-  // for the keys that step through the list.
+  // one stop per tab while its tab rows show, for the keys that step through the list.
   foldered(rows, machine, t, collapsed, { guests = [], nested = false, hidden = false, seen = [] } = {}) {
     const f = folders(machine), { list } = f, ps = panes();
     const programs = this.programs(ps);
     const draw = (r, away) => {
-      seen.push({ id: r.w.id, shown: !away });
+      const tabs = !collapsed && !this.tabsFolded.has(r.w.id) ? r.w.tabs ?? [] : [];
+      if (tabs.length) for (const c of tabs) seen.push({ id: r.w.id, tab: c.id, shown: !away });
+      else seen.push({ id: r.w.id, tab: null, shown: !away });
       return away ? [] : collapsed ? [this.compact(r, t)] : [this.row(r, t), ...this.tabRows(r, programs, t)];
     };
     let parent = null;

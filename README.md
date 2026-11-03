@@ -18,7 +18,7 @@ A fork of [jankeesvw/herdr-space-folders](https://github.com/jankeesvw/herdr-spa
 - Colored folders that fold, filled by dragging or by rules on the folder a space works in.
 - A folder's **+** opens a new space in the folder's start folder.
 - A folder can take in another machine, with its header and spaces.
-- `alt-up` / `alt-down` go to the space above or below in the list as it shows.
+- `alt-up` / `alt-down` go to the tab above or below in the list as it shows: through the tabs of a space, then on to the next space or folder.
 - Folders are kept in `~/.config/herdr-space-folders.json` on the machine the spaces run on. This is the same file (and the same shared state) as space-folders, so both mods show the same folders.
 
 See [RECIPE.md](RECIPE.md) for the full behavior.
