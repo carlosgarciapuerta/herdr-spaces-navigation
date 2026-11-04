@@ -78,15 +78,27 @@ export function nextStop(seen, space, dir) {
   return null;
 }
 
-// tab id -> the program it shows: an agent first, else its first pane's.
-export function programsByTab(ps) {
+// tab id -> the pane it goes by: an agent's first, else its first pane.
+export function leadsByTab(ps) {
   const out = {};
   for (const p of ps) {
     if (!p.tab || !p.program) continue;
-    if (!out[p.tab] || (p.program.agent && !out[p.tab].agent)) out[p.tab] = p.program;
+    if (!out[p.tab] || (p.program.agent && !out[p.tab].program.agent)) out[p.tab] = p;
   }
   return out;
 }
 
 // A tab row's name: its own when someone named it, else its program's, as the tab bar does.
 export const tabName = (c, program) => (c.named ? c.name : program?.name ?? "Terminal");
+
+// An agent's session name, from the title it gives its terminal: "π ⠸ 🏷️ TAB: Name
+// tabs" gives "TAB: Name tabs", "✳ Fix the build" gives "Fix the build". Leading
+// marks (spinners, emoji, Oh My Pi's "π") go. "" for a pane that isn't an agent,
+// and for a title that is only a path, a user@host or the program's own name.
+export function sessionName(p) {
+  const program = p?.program;
+  if (!program?.agent) return "";
+  const s = (p.title ?? "").replace(/^(?:[^\p{L}\p{N}~/\\]|π(?=\s|$))+/u, "").trim();
+  if (!s || /^[~/]|^[A-Za-z]:\\/.test(s) || s.includes("@")) return "";
+  return [program.name, program.key].some((n) => n && n.toLowerCase() === s.toLowerCase()) ? "" : s;
+}

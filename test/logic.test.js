@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { rule, folderOf, stopsOf, nextStop, programsByTab, tabName, lastPart } from "../mods/herdr-spaces-navigation/logic.js";
+import { rule, folderOf, stopsOf, nextStop, leadsByTab, tabName, sessionName, lastPart } from "../mods/herdr-spaces-navigation/logic.js";
 
 describe("rule", () => {
   test("~ is any home, * one folder name, and everything under the match", () => {
@@ -130,19 +130,20 @@ describe("next/previous stops", () => {
 });
 
 describe("tab rows", () => {
-  const zsh = { name: "zsh", agent: false };
-  const claude = { name: "Claude Code", agent: true };
+  const zsh = { key: "shell", name: "zsh", agent: false };
+  const claude = { key: "claude", name: "Claude Code", agent: true };
+  const omp = { key: "omp", name: "Oh My Pi", agent: true };
 
-  test("a tab goes by its agent, else by its first pane's program", () => {
-    const by = programsByTab([
-      { tab: "t1", program: zsh },
-      { tab: "t1", program: claude },
-      { tab: "t2", program: zsh },
-      { tab: "t2", program: { name: "nvim", agent: false } },
-      { tab: "t3", program: null },
+  test("a tab goes by its agent's pane, else by its first pane", () => {
+    const by = leadsByTab([
+      { tab: "t1", pane: "a", program: zsh },
+      { tab: "t1", pane: "b", program: claude },
+      { tab: "t2", pane: "c", program: zsh },
+      { tab: "t2", pane: "d", program: { name: "nvim", agent: false } },
+      { tab: "t3", pane: "e", program: null },
     ]);
-    assert.equal(by.t1, claude);
-    assert.equal(by.t2, zsh);
+    assert.equal(by.t1.pane, "b");
+    assert.equal(by.t2.pane, "c");
     assert.equal(by.t3, undefined);
   });
 
@@ -150,6 +151,23 @@ describe("tab rows", () => {
     assert.equal(tabName({ named: true, name: "tests" }, claude), "tests");
     assert.equal(tabName({ named: false, name: "2" }, claude), "Claude Code");
     assert.equal(tabName({ named: false, name: "2" }, undefined), "Terminal");
+  });
+
+  test("an agent's session name is its title without the leading marks", () => {
+    assert.equal(sessionName({ program: omp, title: "π ⠸ 🏷️ TAB: Auto-name tabs" }), "TAB: Auto-name tabs");
+    assert.equal(sessionName({ program: omp, title: "π > 📝 KEP1: Fill the form" }), "KEP1: Fill the form");
+    assert.equal(sessionName({ program: claude, title: "✳ Writing a mod" }), "Writing a mod");
+    assert.equal(sessionName({ program: claude, title: "Writing a mod" }), "Writing a mod");
+  });
+
+  test("no session name for a shell, a path, a user@host or the program's own name", () => {
+    assert.equal(sessionName({ program: zsh, title: "Fix the build" }), "");
+    assert.equal(sessionName({ program: claude, title: "✳ Claude Code" }), "");
+    assert.equal(sessionName({ program: omp, title: "π" }), "");
+    assert.equal(sessionName({ program: omp, title: "omp" }), "");
+    assert.equal(sessionName({ program: claude, title: "~/code/app" }), "");
+    assert.equal(sessionName({ program: claude, title: "ann@box:~/code" }), "");
+    assert.equal(sessionName(undefined), "");
   });
 });
 

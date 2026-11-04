@@ -23,7 +23,7 @@
 import { View, div, svg, image } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { spaces, machines, panes, run, openOverlay, closeOverlay, props, exec, hc, theme, shared, setShared, watchFolder, window, layout, pickFolder, home, nextCommand } from "herdr";
-import { localId, place, collects, folderOf, lastPart, stopsOf, nextStop, programsByTab, tabName } from "./logic.js";
+import { localId, place, collects, folderOf, lastPart, stopsOf, nextStop, leadsByTab, tabName, sessionName } from "./logic.js";
 
 // A machine's folders live in a file in its home, so every screen showing its
 // spaces shows the same folders: { list: [{ id, name, folded }], of: { spaceId:
@@ -37,6 +37,11 @@ const MOD = "herdr-spaces-navigation";
 const key = (machine) => machine ?? "";
 const all = () => shared("space-folders") ?? {};
 const folders = (machine) => all()[key(machine)] ?? { list: [], of: {} };
+// Agent session names after the tab names: shown unless someone hid them (shared,
+// so every screen and the menu overlay agree, and it lasts past a restart).
+const SESSIONS = "spaces-navigation.sessions";
+const sessionsShown = () => shared(SESSIONS) !== false;
+const toggleSessions = () => setShared(SESSIONS, !sessionsShown());
 const URGENT = ["blocked", "done", "working"];
 
 async function readFolders(machine) {
@@ -179,6 +184,7 @@ export default class Spaces extends View {
       for (;;) {
         const c = String(await nextCommand()).split(".").pop();
         if (c === "next" || c === "prev") this.step(c === "next" ? 1 : -1);
+        else if (c === "sessions") toggleSessions();
         cx.notify();
       }
     });
@@ -322,7 +328,7 @@ export default class Spaces extends View {
   menu(w, g) {
     // A popup is as tall as its items; height is only the most.
     const git = g ? (g.linked ? "linked" : "main") : null;
-    openOverlay({ mod: MOD, kind: "popup", width: 236, height: 300, props: { spaceMenu: w.id, git } });
+    openOverlay({ mod: MOD, kind: "popup", width: 236, height: 340, props: { spaceMenu: w.id, git } });
   }
 
   // ---- folders ----
@@ -420,10 +426,10 @@ export default class Spaces extends View {
   // one stop per tab while its tab rows show, for the keys that step through the list.
   foldered(rows, machine, t, collapsed, { guests = [], nested = false, hidden = false, seen = [] } = {}) {
     const f = folders(machine), { list } = f, ps = panes();
-    const programs = programsByTab(ps);
+    const leads = leadsByTab(ps);
     const draw = (r, away) => {
       seen.push(...stopsOf(r.w, !collapsed && !this.tabsFolded.has(r.w.id), !away));
-      return away ? [] : collapsed ? [this.compact(r, t)] : [this.row(r, t), ...this.tabRows(r, programs, t)];
+      return away ? [] : collapsed ? [this.compact(r, t)] : [this.row(r, t), ...this.tabRows(r, leads, t)];
     };
     let parent = null;
     const placed = rows.map((r) => {
@@ -536,6 +542,7 @@ export default class Spaces extends View {
         .child(item("space-worktree-open", "Open worktree", worktree("open", { width: 560, height: 480 }))))
       .when(git === "linked", (el) => el.child(item("space-worktree-remove", "Remove worktree", worktree("remove", { width: 440, height: 260 }))))
       .child(div().mx(7).my(4).h(1).bg(t.border))
+      .child(item("space-sessions", sessionsShown() ? "Hide session names" : "Show session names", toggleSessions))
       .child(item("space-close", "Close", () => run("space.close", { id })));
   }
 
@@ -699,13 +706,15 @@ export default class Spaces extends View {
   }
 
   // A space's tabs, under its name: the program icon, the tab's name (an unnamed
-  // one goes by its program, as in the tab bar) and the agent status in it.
-  tabRows({ w, i, folder, nested }, programs, t) {
+  // one goes by its program, as in the tab bar), the agent's session name in
+  // dim after it, and the agent status in it.
+  tabRows({ w, i, folder, nested }, leads, t) {
     if (this.tabsFolded.has(w.id)) return [];
-    const pad = (folder || nested ? 26 : 8) + 27;
+    const pad = (folder || nested ? 26 : 8) + 27, sessions = sessionsShown();
     return (w.tabs ?? []).map((c) => {
-      const program = programs[c.id];
+      const lead = leads[c.id], program = lead?.program;
       const name = tabName(c, program);
+      const session = sessions ? sessionName(lead) : "";
       const shown = w.active && c.active;
       return h_flex()
         .id(`tab-${c.id}`)
@@ -740,7 +749,9 @@ export default class Spaces extends View {
         .child(program?.icon
           ? (program.tint ? svg(program.icon).size(13).flex_none().text_color(t.muted) : image(program.icon).size(13).flex_none())
           : svg("mods/workspace-chrome/terminal.svg").size(13).flex_none().text_color(t.dim))
-        .child(div().flex_1().min_w(0).truncate().child(c.zoomed ? `${name} Z` : name))
+        .child(div().min_w(0).truncate().when(Boolean(session), (el) => el.flex_none().max_w(110)).when(!session, (el) => el.flex_1())
+          .child(c.zoomed ? `${name} Z` : name))
+        .when(Boolean(session), (el) => el.child(div().flex_1().min_w(0).truncate().text_size(11.5).text_color(t.dim).child(session)))
         .when(c.status === "working", (el) => el.child(svg("mods/workspace-chrome/spinner.svg").size(11).flex_none().text_color(t.working).spin(900)))
         .when(c.status === "blocked" || c.status === "done", (el) => el.child(div().size(6).flex_none().rounded(3).bg(t[c.status])));
     });

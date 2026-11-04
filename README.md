@@ -19,7 +19,8 @@ It is a fork of [jankeesvw/herdr-space-folders](https://github.com/jankeesvw/her
 
 ## Tabs under each space
 
-- **One row per tab**, indented under its space: the program's icon, the tab's name (an unnamed tab goes by its program, as in the tab bar), and its agent status: a spinner while working, a dot when done or blocked.
+- **One row per tab**, indented under its space: the program's icon, the tab's name (an unnamed tab goes by its program, as in the tab bar), the agent's session name in grey after it (`Oh My Pi  TAB: Auto-name tabs`, taken from the title the agent gives its terminal), and its agent status: a spinner while working, a dot when done or blocked.
+- **Session names** show by default. To hide or show them, right-click a space and pick "Hide session names" or "Show session names", or run `herdr-spaces-navigation.sessions` (`herdr-app do herdr-spaces-navigation.sessions`, or bind it in `keys.json`). The choice applies to every screen and stays after a restart.
 - **Click** a tab row to show that space and that tab.
 - **Double-click** a tab row to rename it.
 - **Right-click** a tab row for Herdr's tab menu (rename, new tab, close).
@@ -84,6 +85,14 @@ Last, add the keys. Copy the `layout:main-navigation` section of this repository
 
 Herdr doesn't notice changes inside a symlinked mod folder. After a `git pull`, restart Herdr (or make the link again) to load the new version.
 
+## Updates
+
+Herdr doesn't update mods made by other people, and doesn't say when one has a new version. Each version of this mod is a git tag (`v1.1.0`) and a [GitHub release](https://github.com/carlosgarciapuerta/herdr-spaces-navigation/releases); [CHANGELOG.md](CHANGELOG.md) says what changed.
+
+- **To hear of a new version**: on GitHub, Watch → Custom → Releases.
+- **Installed with git and a symlink**: `git -C ~/code/herdr-spaces-navigation pull`, then restart Herdr.
+- **Installed by an agent** (a copy, with no git): ask it to add the mod again from this repository.
+
 ## Keeping up with upstream
 
 ```sh
@@ -99,7 +108,7 @@ Upstream's mod lives in `mods/space-folders/`; here it is `mods/herdr-spaces-nav
 pnpm test
 ```
 
-This runs `node --test` (Node 20 or later; pnpm, as `packageManager` in `package.json` names it; no packages to install) on `test/`. The tests check `mods/herdr-spaces-navigation/logic.js`: the folder rules, which folder a space goes in, the stops `alt-up` / `alt-down` go to, and what a tab row is called. The drawing in `main.js` needs the Herdr app, so `herdr-app check` and a look in the app cover it.
+This runs `node --test` (Node 20 or later; pnpm, as `packageManager` in `package.json` names it; no packages to install) on `test/`. The tests check `mods/herdr-spaces-navigation/logic.js`: the folder rules, which folder a space goes in, the stops `alt-up` / `alt-down` go to, and what a tab row is called (its name and the agent's session name). The drawing in `main.js` needs the Herdr app, so `herdr-app check` and a look in the app cover it.
 
 ## License
 
